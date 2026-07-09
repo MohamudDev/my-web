@@ -31,7 +31,7 @@ export default function Hero() {
               href="#projects"
               className="px-8 py-3 rounded-full bg-primary text-bg-main font-semibold hover:bg-primary-hover transition-colors shadow-[0_0_20px_rgba(234,180,100,0.3)] hover:shadow-[0_0_25px_rgba(234,180,100,0.5)] w-full sm:w-auto text-center"
             >
-              View Projects
+              Score Counter
             </a>
             <a
               href="/cv.jpg"
