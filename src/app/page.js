@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Trophy, Sun, Moon, RotateCcw, Plus, Minus, Undo, History } from "lucide-react";
+import { Trophy, Sun, Moon, RotateCcw, Plus, Minus, History } from "lucide-react";
 
 export default function Home() {
   const [isDarkMode, setIsDarkMode] = useState(true);
@@ -64,21 +64,6 @@ export default function Home() {
         ]);
       }
       setInput2(""); // clear input after action
-    }
-  };
-
-  // Handle Backspace / Undo last action
-  const handleUndo = (team) => {
-    if (team === 1) {
-      if (history1.length === 0) return;
-      const last = history1[history1.length - 1];
-      setTeam1Score(last.prev);
-      setHistory1((prev) => prev.slice(0, -1));
-    } else {
-      if (history2.length === 0) return;
-      const last = history2[history2.length - 1];
-      setTeam2Score(last.prev);
-      setHistory2((prev) => prev.slice(0, -1));
     }
   };
 
@@ -215,30 +200,15 @@ export default function Home() {
                 </button>
               </div>
 
-              {/* Undo & Reset buttons */}
-              <div className="flex gap-2">
-                <button
-                  disabled={history1.length === 0}
-                  onClick={() => handleUndo(1)}
-                  className={`flex-1 py-2.5 text-xs font-semibold rounded-lg transition-all border flex items-center justify-center gap-1 disabled:opacity-35 ${
-                    isDarkMode
-                      ? "bg-white/5 border-white/5 text-text-secondary hover:text-white"
-                      : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100"
-                  }`}
-                  title="Undo last action"
-                >
-                  <Undo size={14} />
-                  <span>Undo</span>
-                </button>
-                <button
-                  disabled={history1.length === 0 && input1 === ""}
-                  onClick={() => handleResetTeam(1)}
-                  className="flex-1 py-2.5 text-xs font-semibold rounded-lg transition-all bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 flex items-center justify-center gap-1 disabled:opacity-35"
-                >
-                  <RotateCcw size={14} />
-                  <span>Reset</span>
-                </button>
-              </div>
+              {/* Reset button */}
+              <button
+                disabled={history1.length === 0 && input1 === ""}
+                onClick={() => handleResetTeam(1)}
+                className="w-full py-2.5 text-xs font-semibold rounded-lg transition-all bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 flex items-center justify-center gap-1 disabled:opacity-35"
+              >
+                <RotateCcw size={14} />
+                <span>Reset Team 1</span>
+              </button>
             </div>
 
             {/* History List */}
@@ -331,30 +301,15 @@ export default function Home() {
                 </button>
               </div>
 
-              {/* Undo & Reset buttons */}
-              <div className="flex gap-2">
-                <button
-                  disabled={history2.length === 0}
-                  onClick={() => handleUndo(2)}
-                  className={`flex-1 py-2.5 text-xs font-semibold rounded-lg transition-all border flex items-center justify-center gap-1 disabled:opacity-35 ${
-                    isDarkMode
-                      ? "bg-white/5 border-white/5 text-text-secondary hover:text-white"
-                      : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100"
-                  }`}
-                  title="Undo last action"
-                >
-                  <Undo size={14} />
-                  <span>Undo</span>
-                </button>
-                <button
-                  disabled={history2.length === 0 && input2 === ""}
-                  onClick={() => handleResetTeam(2)}
-                  className="flex-1 py-2.5 text-xs font-semibold rounded-lg transition-all bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 flex items-center justify-center gap-1 disabled:opacity-35"
-                >
-                  <RotateCcw size={14} />
-                  <span>Reset</span>
-                </button>
-              </div>
+              {/* Reset button */}
+              <button
+                disabled={history2.length === 0 && input2 === ""}
+                onClick={() => handleResetTeam(2)}
+                className="w-full py-2.5 text-xs font-semibold rounded-lg transition-all bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 flex items-center justify-center gap-1 disabled:opacity-35"
+              >
+                <RotateCcw size={14} />
+                <span>Reset Team 2</span>
+              </button>
             </div>
 
             {/* History List */}
