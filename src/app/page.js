@@ -88,19 +88,6 @@ export default function Home() {
     return Math.min(101, Math.max(0, res));
   };
 
-  // Reset a specific team
-  const handleResetTeam = (team) => {
-    if (team === 1) {
-      setTeam1Score(0);
-      setHistory1([]);
-      setInput1("");
-    } else {
-      setTeam2Score(0);
-      setHistory2([]);
-      setInput2("");
-    }
-  };
-
   // Reset all
   const handleRestart = () => {
     setTeam1Score(0);
@@ -207,15 +194,6 @@ export default function Home() {
                   </span>
                 )}
               </div>
-
-              {/* Reset button */}
-              <button
-                onClick={() => handleResetTeam(1)}
-                className="w-full py-2.5 text-xs font-semibold rounded-lg transition-all bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 flex items-center justify-center gap-1"
-              >
-                <RotateCcw size={14} />
-                <span>Reset Team 1</span>
-              </button>
             </div>
 
             {/* History List */}
@@ -291,15 +269,6 @@ export default function Home() {
                   </span>
                 )}
               </div>
-
-              {/* Reset button */}
-              <button
-                onClick={() => handleResetTeam(2)}
-                className="w-full py-2.5 text-xs font-semibold rounded-lg transition-all bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 flex items-center justify-center gap-1"
-              >
-                <RotateCcw size={14} />
-                <span>Reset Team 2</span>
-              </button>
             </div>
 
             {/* History List */}
