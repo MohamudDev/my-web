@@ -36,7 +36,7 @@ export default function Hero() {
               <span>Download CV</span>
             </a>
             <a
-              href="/scoreboard"
+              href="#scoreboard"
               className="px-8 py-3 rounded-full bg-white/10 hover:bg-white/20 text-white font-semibold transition-colors w-full sm:w-auto text-center border border-white/20"
             >
               Score Board
