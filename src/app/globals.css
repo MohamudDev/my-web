@@ -1,0 +1,68 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #EAB464;
+  --color-primary-hover: #FFD27A;
+  --color-bg-main: #001011;
+  --color-bg-secondary: #0A1A1F;
+  --color-text-main: #FFFFFF;
+  --color-text-secondary: #BFC7C9;
+  --font-sans: var(--font-poppins);
+}
+
+:root {
+  --background: #001011;
+  --foreground: #FFFFFF;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  scroll-behavior: smooth;
+  overflow-x: hidden;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* Glassmorphism utility */
+.glass {
+  background: rgba(10, 26, 31, 0.6);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.glass-card {
+  background: rgba(10, 26, 31, 0.7);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+  border-radius: 20px;
+}
+
+.glowing-bg {
+  position: absolute;
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(circle, rgba(234, 180, 100, 0.15) 0%, rgba(0, 16, 17, 0) 70%);
+  top: -200px;
+  left: -200px;
+  z-index: -1;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.glowing-bg-2 {
+  position: absolute;
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, rgba(234, 180, 100, 0.1) 0%, rgba(0, 16, 17, 0) 70%);
+  bottom: 0;
+  right: -100px;
+  z-index: -1;
+  border-radius: 50%;
+  pointer-events: none;
+}
