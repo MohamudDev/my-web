@@ -1,7 +1,35 @@
 "use client";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Trophy, Sun, Moon, RotateCcw, Plus, Minus, History } from "lucide-react";
+import { Trophy, Sun, Moon, RotateCcw, History, Calculator } from "lucide-react";
+
+// Safe math expression evaluator
+const evaluateExpression = (expr, currentScore) => {
+  if (!expr) return null;
+  // Trim all whitespace
+  let clean = expr.replace(/\s+/g, "");
+  if (clean === "") return null;
+
+  // If it starts with + or -, prepend the currentScore
+  if (clean.startsWith("+") || clean.startsWith("-")) {
+    clean = currentScore.toString() + clean;
+  }
+
+  // Validate math expression containing only numbers separated by single + or -
+  const validPattern = /^[+\-]?\d+(?:[+\-]\d+)*$/;
+  if (!validPattern.test(clean)) {
+    return null;
+  }
+
+  try {
+    // Match signed numbers: e.g. "28+16-5" -> ["28", "+16", "-5"]
+    const tokens = clean.match(/([+\-]?\d+)/g);
+    if (!tokens) return null;
+    return tokens.reduce((acc, token) => acc + parseInt(token), 0);
+  } catch (e) {
+    return null;
+  }
+};
 
 export default function Home() {
   const [isDarkMode, setIsDarkMode] = useState(true);
@@ -14,57 +42,50 @@ export default function Home() {
   const [history1, setHistory1] = useState([]);
   const [history2, setHistory2] = useState([]);
 
-  // Check if winner exists
-  const winner = team1Score >= 100 ? "Team 1" : team2Score >= 100 ? "Team 2" : null;
+  // Check if winner exists (Updated to 101 threshold)
+  const winner = team1Score >= 101 ? "Team 1" : team2Score >= 101 ? "Team 2" : null;
   const isGameOver = !!winner;
 
-  // Handle operations (+ / -)
-  const handleOperation = (team, op) => {
-    if (isGameOver) return;
-    
-    const inputVal = team === 1 ? input1 : input2;
-    const value = parseInt(inputVal) || 0;
-    if (value <= 0) return;
+  // Handle expression submission on Enter
+  const handleKeyDown = (team, e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      if (isGameOver) return;
 
-    if (team === 1) {
-      const prev = team1Score;
-      let next = prev;
-      if (op === "+") {
-        next = Math.min(100, prev + value);
-        setTeam1Score(next);
-        setHistory1((prevHist) => [
-          ...prevHist,
-          { prev, op: "+", val: value, next },
-        ]);
-      } else {
-        next = Math.max(0, prev - value);
-        setTeam1Score(next);
-        setHistory1((prevHist) => [
-          ...prevHist,
-          { prev, op: "-", val: value, next },
-        ]);
+      const inputVal = team === 1 ? input1 : input2;
+      const score = team === 1 ? team1Score : team2Score;
+      
+      const next = evaluateExpression(inputVal, score);
+      if (next !== null) {
+        const boundedNext = Math.min(101, Math.max(0, next));
+        const diff = boundedNext - score;
+        const op = diff >= 0 ? "+" : "-";
+        const val = Math.abs(diff);
+
+        if (team === 1) {
+          setTeam1Score(boundedNext);
+          setHistory1((prevHist) => [
+            ...prevHist,
+            { prev: score, op, val, next: boundedNext, expr: inputVal },
+          ]);
+          setInput1("");
+        } else {
+          setTeam2Score(boundedNext);
+          setHistory2((prevHist) => [
+            ...prevHist,
+            { prev: score, op, val, next: boundedNext, expr: inputVal },
+          ]);
+          setInput2("");
+        }
       }
-      setInput1(""); // clear input after action
-    } else {
-      const prev = team2Score;
-      let next = prev;
-      if (op === "+") {
-        next = Math.min(100, prev + value);
-        setTeam2Score(next);
-        setHistory2((prevHist) => [
-          ...prevHist,
-          { prev, op: "+", val: value, next },
-        ]);
-      } else {
-        next = Math.max(0, prev - value);
-        setTeam2Score(next);
-        setHistory2((prevHist) => [
-          ...prevHist,
-          { prev, op: "-", val: value, next },
-        ]);
-      }
-      setInput2(""); // clear input after action
     }
+  };
+
+  // Get real-time preview of the expression
+  const getPreview = (inputVal, currentScore) => {
+    const res = evaluateExpression(inputVal, currentScore);
+    if (res === null) return null;
+    return Math.min(101, Math.max(0, res));
   };
 
   // Reset a specific team
@@ -89,6 +110,9 @@ export default function Home() {
     setHistory1([]);
     setHistory2([]);
   };
+
+  const preview1 = getPreview(input1, team1Score);
+  const preview2 = getPreview(input2, team2Score);
 
   return (
     <div
@@ -153,58 +177,41 @@ export default function Home() {
                 <span className="text-6xl md:text-7xl font-black tracking-tight text-primary block">
                   {team1Score}
                 </span>
-                <span className="text-xs text-text-secondary block mt-1">/ 100</span>
+                <span className="text-xs text-text-secondary block mt-1">/ 101</span>
               </div>
             </div>
 
             {/* Input & Operations */}
             <div className="mt-4 flex flex-col gap-3">
-              <div className={`flex items-center gap-2 p-2 rounded-xl border transition-all ${
-                isDarkMode ? "bg-white/5 border-white/10" : "bg-gray-50 border-gray-200"
+              <div className={`flex items-center gap-2 p-3 rounded-xl border transition-all ${
+                isDarkMode ? "bg-white/5 border-white/10 focus-within:border-primary/50" : "bg-gray-50 border-gray-200 focus-within:border-primary/50"
               }`}>
                 <input
-                  type="number"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  placeholder="Enter score"
+                  type="text"
+                  placeholder="e.g. +16 or 28+16"
                   disabled={isGameOver}
                   value={input1}
                   onChange={(e) => setInput1(e.target.value)}
+                  onKeyDown={(e) => handleKeyDown(1, e)}
                   className={`bg-transparent font-bold text-center w-full focus:outline-none text-lg ${
-                    isDarkMode ? "text-white placeholder-white/30" : "text-gray-900 placeholder-gray-400"
+                    isDarkMode ? "text-white placeholder-white/20" : "text-gray-900 placeholder-gray-400"
                   }`}
                 />
               </div>
 
-              {/* Plus & Minus buttons */}
-              <div className="flex gap-2">
-                <button
-                  disabled={isGameOver || input1 === ""}
-                  onClick={() => handleOperation(1, "+")}
-                  className="flex-1 py-3 bg-primary hover:bg-primary-hover text-bg-main font-bold rounded-xl transition-all active:scale-95 flex items-center justify-center gap-1 shadow-sm disabled:opacity-40"
-                >
-                  <Plus size={18} />
-                  <span>Add</span>
-                </button>
-                <button
-                  disabled={isGameOver || input1 === "" || team1Score === 0}
-                  onClick={() => handleOperation(1, "-")}
-                  className={`flex-1 py-3 font-bold rounded-xl transition-all active:scale-95 border flex items-center justify-center gap-1 disabled:opacity-40 ${
-                    isDarkMode
-                      ? "bg-white/5 border-white/10 hover:bg-white/10 text-white"
-                      : "bg-gray-50 border-gray-200 hover:bg-gray-100 text-gray-800"
-                  }`}
-                >
-                  <Minus size={18} />
-                  <span>Sub</span>
-                </button>
+              {/* Real-time preview */}
+              <div className="min-h-[24px] text-center">
+                {preview1 !== null && (
+                  <span className="text-xs font-semibold text-primary animate-pulse">
+                    Preview: {team1Score} → {preview1}
+                  </span>
+                )}
               </div>
 
               {/* Reset button */}
               <button
-                disabled={history1.length === 0 && input1 === ""}
                 onClick={() => handleResetTeam(1)}
-                className="w-full py-2.5 text-xs font-semibold rounded-lg transition-all bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 flex items-center justify-center gap-1 disabled:opacity-35"
+                className="w-full py-2.5 text-xs font-semibold rounded-lg transition-all bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 flex items-center justify-center gap-1"
               >
                 <RotateCcw size={14} />
                 <span>Reset Team 1</span>
@@ -217,7 +224,7 @@ export default function Home() {
                 <History size={14} />
                 <span className="text-[10px] font-bold uppercase tracking-wider">History</span>
               </div>
-              <div className={`rounded-xl p-3 h-28 overflow-y-auto flex flex-col gap-1.5 scrollbar-thin ${
+              <div className={`rounded-xl p-3 h-32 overflow-y-auto flex flex-col gap-1.5 scrollbar-thin ${
                 isDarkMode ? "bg-white/5" : "bg-gray-50 border border-gray-100"
               }`}>
                 {history1.length === 0 ? (
@@ -228,7 +235,7 @@ export default function Home() {
                       isDarkMode ? "border-white/5" : "border-gray-200"
                     }`}>
                       <span className={item.op === "+" ? "text-green-500" : "text-red-500"}>
-                        {item.op}{item.val}
+                        {item.expr.includes("+") || item.expr.includes("-") ? item.expr : `${item.op}${item.val}`}
                       </span>
                       <span className="text-text-secondary">
                         {item.prev} → {item.next}
@@ -254,58 +261,41 @@ export default function Home() {
                 <span className="text-6xl md:text-7xl font-black tracking-tight text-primary block">
                   {team2Score}
                 </span>
-                <span className="text-xs text-text-secondary block mt-1">/ 100</span>
+                <span className="text-xs text-text-secondary block mt-1">/ 101</span>
               </div>
             </div>
 
             {/* Input & Operations */}
             <div className="mt-4 flex flex-col gap-3">
-              <div className={`flex items-center gap-2 p-2 rounded-xl border transition-all ${
-                isDarkMode ? "bg-white/5 border-white/10" : "bg-gray-50 border-gray-200"
+              <div className={`flex items-center gap-2 p-3 rounded-xl border transition-all ${
+                isDarkMode ? "bg-white/5 border-white/10 focus-within:border-primary/50" : "bg-gray-50 border-gray-200 focus-within:border-primary/50"
               }`}>
                 <input
-                  type="number"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  placeholder="Enter score"
+                  type="text"
+                  placeholder="e.g. +16 or 28+16"
                   disabled={isGameOver}
                   value={input2}
                   onChange={(e) => setInput2(e.target.value)}
+                  onKeyDown={(e) => handleKeyDown(2, e)}
                   className={`bg-transparent font-bold text-center w-full focus:outline-none text-lg ${
-                    isDarkMode ? "text-white placeholder-white/30" : "text-gray-900 placeholder-gray-400"
+                    isDarkMode ? "text-white placeholder-white/20" : "text-gray-900 placeholder-gray-400"
                   }`}
                 />
               </div>
 
-              {/* Plus & Minus buttons */}
-              <div className="flex gap-2">
-                <button
-                  disabled={isGameOver || input2 === ""}
-                  onClick={() => handleOperation(2, "+")}
-                  className="flex-1 py-3 bg-primary hover:bg-primary-hover text-bg-main font-bold rounded-xl transition-all active:scale-95 flex items-center justify-center gap-1 shadow-sm disabled:opacity-40"
-                >
-                  <Plus size={18} />
-                  <span>Add</span>
-                </button>
-                <button
-                  disabled={isGameOver || input2 === "" || team2Score === 0}
-                  onClick={() => handleOperation(2, "-")}
-                  className={`flex-1 py-3 font-bold rounded-xl transition-all active:scale-95 border flex items-center justify-center gap-1 disabled:opacity-40 ${
-                    isDarkMode
-                      ? "bg-white/5 border-white/10 hover:bg-white/10 text-white"
-                      : "bg-gray-50 border-gray-200 hover:bg-gray-100 text-gray-800"
-                  }`}
-                >
-                  <Minus size={18} />
-                  <span>Sub</span>
-                </button>
+              {/* Real-time preview */}
+              <div className="min-h-[24px] text-center">
+                {preview2 !== null && (
+                  <span className="text-xs font-semibold text-primary animate-pulse">
+                    Preview: {team2Score} → {preview2}
+                  </span>
+                )}
               </div>
 
               {/* Reset button */}
               <button
-                disabled={history2.length === 0 && input2 === ""}
                 onClick={() => handleResetTeam(2)}
-                className="w-full py-2.5 text-xs font-semibold rounded-lg transition-all bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 flex items-center justify-center gap-1 disabled:opacity-35"
+                className="w-full py-2.5 text-xs font-semibold rounded-lg transition-all bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 flex items-center justify-center gap-1"
               >
                 <RotateCcw size={14} />
                 <span>Reset Team 2</span>
@@ -318,7 +308,7 @@ export default function Home() {
                 <History size={14} />
                 <span className="text-[10px] font-bold uppercase tracking-wider">History</span>
               </div>
-              <div className={`rounded-xl p-3 h-28 overflow-y-auto flex flex-col gap-1.5 scrollbar-thin ${
+              <div className={`rounded-xl p-3 h-32 overflow-y-auto flex flex-col gap-1.5 scrollbar-thin ${
                 isDarkMode ? "bg-white/5" : "bg-gray-50 border border-gray-100"
               }`}>
                 {history2.length === 0 ? (
@@ -329,7 +319,7 @@ export default function Home() {
                       isDarkMode ? "border-white/5" : "border-gray-200"
                     }`}>
                       <span className={item.op === "+" ? "text-green-500" : "text-red-500"}>
-                        {item.op}{item.val}
+                        {item.expr.includes("+") || item.expr.includes("-") ? item.expr : `${item.op}${item.val}`}
                       </span>
                       <span className="text-text-secondary">
                         {item.prev} → {item.next}
@@ -391,7 +381,7 @@ export default function Home() {
                 🏆 {winner} Winner
               </h2>
               <p className="text-primary font-bold text-sm uppercase tracking-widest mb-6">
-                Score of 100+ Reached!
+                Score of 101+ Reached!
               </p>
 
               <button
