@@ -28,15 +28,9 @@ export default function Hero() {
           </p>
           <div className="flex flex-col sm:flex-row items-center gap-4 justify-center md:justify-start flex-wrap">
             <a
-              href="#projects"
-              className="px-8 py-3 rounded-full bg-primary text-bg-main font-semibold hover:bg-primary-hover transition-colors shadow-[0_0_20px_rgba(234,180,100,0.3)] hover:shadow-[0_0_25px_rgba(234,180,100,0.5)] w-full sm:w-auto text-center"
-            >
-              Score Counter
-            </a>
-            <a
               href="/cv.jpg"
               download="Sharmaarke_Mohamed_CV.jpg"
-              className="px-8 py-3 rounded-full bg-white/10 hover:bg-white/20 text-white font-semibold transition-colors flex items-center justify-center gap-2 w-full sm:w-auto text-center border border-white/20"
+              className="px-8 py-3 rounded-full bg-primary text-bg-main font-semibold hover:bg-primary-hover transition-colors shadow-[0_0_20px_rgba(234,180,100,0.3)] hover:shadow-[0_0_25px_rgba(234,180,100,0.5)] w-full sm:w-auto text-center flex items-center justify-center gap-2"
             >
               <Download size={18} />
               <span>Download CV</span>
