@@ -1,14 +1,16 @@
 "use client";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Trophy, Sun, Moon, RotateCcw, ArrowLeft } from "lucide-react";
+import { Trophy, Sun, Moon, RotateCcw, Plus, Minus, Undo, History } from "lucide-react";
 
 export default function Home() {
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [team1Score, setTeam1Score] = useState(0);
   const [team2Score, setTeam2Score] = useState(0);
-  const [selectedTeam, setSelectedTeam] = useState(1);
-  const [currentInput, setCurrentInput] = useState("");
+  
+  const [input1, setInput1] = useState("");
+  const [input2, setInput2] = useState("");
+  
   const [history1, setHistory1] = useState([]);
   const [history2, setHistory2] = useState([]);
 
@@ -16,34 +18,15 @@ export default function Home() {
   const winner = team1Score >= 100 ? "Team 1" : team2Score >= 100 ? "Team 2" : null;
   const isGameOver = !!winner;
 
-  // Handle number click
-  const handleNumClick = (num) => {
-    if (isGameOver) return;
-    // Prevent leading zeroes or input length > 3
-    if (currentInput === "" && num === 0) return;
-    if (currentInput.length >= 3) return;
-    setCurrentInput((prev) => prev + num);
-  };
-
-  // Handle Backspace
-  const handleBackspace = () => {
-    if (isGameOver) return;
-    setCurrentInput((prev) => prev.slice(0, -1));
-  };
-
-  // Handle Clear
-  const handleClear = () => {
-    if (isGameOver) return;
-    setCurrentInput("");
-  };
-
   // Handle operations (+ / -)
-  const handleOperation = (op) => {
+  const handleOperation = (team, op) => {
     if (isGameOver) return;
-    const value = parseInt(currentInput) || 0;
-    if (value === 0) return;
+    
+    const inputVal = team === 1 ? input1 : input2;
+    const value = parseInt(inputVal) || 0;
+    if (value <= 0) return;
 
-    if (selectedTeam === 1) {
+    if (team === 1) {
       const prev = team1Score;
       let next = prev;
       if (op === "+") {
@@ -61,6 +44,7 @@ export default function Home() {
           { prev, op: "-", val: value, next },
         ]);
       }
+      setInput1(""); // clear input after action
     } else {
       const prev = team2Score;
       let next = prev;
@@ -79,23 +63,47 @@ export default function Home() {
           { prev, op: "-", val: value, next },
         ]);
       }
+      setInput2(""); // clear input after action
     }
-    setCurrentInput("");
+  };
+
+  // Handle Backspace / Undo last action
+  const handleUndo = (team) => {
+    if (team === 1) {
+      if (history1.length === 0) return;
+      const last = history1[history1.length - 1];
+      setTeam1Score(last.prev);
+      setHistory1((prev) => prev.slice(0, -1));
+    } else {
+      if (history2.length === 0) return;
+      const last = history2[history2.length - 1];
+      setTeam2Score(last.prev);
+      setHistory2((prev) => prev.slice(0, -1));
+    }
+  };
+
+  // Reset a specific team
+  const handleResetTeam = (team) => {
+    if (team === 1) {
+      setTeam1Score(0);
+      setHistory1([]);
+      setInput1("");
+    } else {
+      setTeam2Score(0);
+      setHistory2([]);
+      setInput2("");
+    }
   };
 
   // Reset all
   const handleRestart = () => {
     setTeam1Score(0);
     setTeam2Score(0);
-    setCurrentInput("");
+    setInput1("");
+    setInput2("");
     setHistory1([]);
     setHistory2([]);
-    setSelectedTeam(1);
   };
-
-  // Active score for calculation preview
-  const activeScore = selectedTeam === 1 ? team1Score : team2Score;
-  const inputVal = parseInt(currentInput) || 0;
 
   return (
     <div
@@ -112,7 +120,7 @@ export default function Home() {
       )}
 
       {/* Header */}
-      <header className="w-full max-w-lg flex items-center justify-between z-10 mb-4">
+      <header className="w-full max-w-2xl flex items-center justify-between z-10 mb-6">
         <h1 className="text-xl md:text-2xl font-black tracking-widest text-primary uppercase">
           Score Board
         </h1>
@@ -143,270 +151,255 @@ export default function Home() {
       </header>
 
       {/* Main Container */}
-      <main className="w-full max-w-lg flex-grow flex flex-col justify-center gap-6 z-10">
-        {/* Scores Card */}
-        <div
-          className={`p-6 rounded-[24px] border transition-all duration-300 ${
-            isDarkMode
-              ? "bg-[#0A1A1F]/70 border-white/5 shadow-2xl"
-              : "bg-white border-gray-200 shadow-xl"
-          }`}
-        >
-          <div className="grid grid-cols-2 gap-4">
-            {/* Team 1 Score */}
-            <div
-              onClick={() => !isGameOver && setSelectedTeam(1)}
-              className={`p-4 rounded-2xl cursor-pointer transition-all duration-300 border flex flex-col items-center justify-center relative overflow-hidden ${
-                selectedTeam === 1
-                  ? "border-primary bg-primary/10 shadow-[0_0_15px_rgba(234,180,100,0.15)] scale-[1.02]"
-                  : isDarkMode
-                  ? "border-white/5 bg-white/5 hover:bg-white/10"
-                  : "border-gray-100 bg-gray-50 hover:bg-gray-100"
-              }`}
-            >
-              <span className={`text-xs font-bold uppercase tracking-wider mb-1 ${
-                selectedTeam === 1 ? "text-primary" : "text-text-secondary"
-              }`}>
-                Team 1
-              </span>
-              <span className="text-5xl md:text-6xl font-black tracking-tight text-white transition-transform duration-300">
-                <span className={isDarkMode ? "text-white" : "text-gray-900"}>{team1Score}</span>
-              </span>
-              {selectedTeam === 1 && (
-                <div className="absolute top-2 right-2 w-2 h-2 rounded-full bg-primary animate-ping"></div>
-              )}
+      <main className="w-full max-w-2xl flex-grow flex flex-col justify-center gap-6 z-10">
+        {/* Scoreboard Cards Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Team 1 Card */}
+          <motion.div
+            className={`p-6 rounded-[24px] border transition-all duration-300 flex flex-col justify-between ${
+              winner === "Team 1" ? "border-primary shadow-[0_0_30px_rgba(234,180,100,0.25)] bg-primary/5" : ""
+            } ${isGameOver && winner !== "Team 1" ? "opacity-50" : ""} ${
+              isDarkMode ? "bg-[#0A1A1F]/70 border-white/5 shadow-xl" : "bg-white border-gray-200 shadow-md"
+            }`}
+          >
+            <div className="text-center relative">
+              <h2 className="text-xl font-bold uppercase tracking-wider mb-2">Team 1</h2>
+              <div className="my-4">
+                <span className="text-6xl md:text-7xl font-black tracking-tight text-primary block">
+                  {team1Score}
+                </span>
+                <span className="text-xs text-text-secondary block mt-1">/ 100</span>
+              </div>
             </div>
 
-            {/* Team 2 Score */}
-            <div
-              onClick={() => !isGameOver && setSelectedTeam(2)}
-              className={`p-4 rounded-2xl cursor-pointer transition-all duration-300 border flex flex-col items-center justify-center relative overflow-hidden ${
-                selectedTeam === 2
-                  ? "border-primary bg-primary/10 shadow-[0_0_15px_rgba(234,180,100,0.15)] scale-[1.02]"
-                  : isDarkMode
-                  ? "border-white/5 bg-white/5 hover:bg-white/10"
-                  : "border-gray-100 bg-gray-50 hover:bg-gray-100"
-              }`}
-            >
-              <span className={`text-xs font-bold uppercase tracking-wider mb-1 ${
-                selectedTeam === 2 ? "text-primary" : "text-text-secondary"
+            {/* Input & Operations */}
+            <div className="mt-4 flex flex-col gap-3">
+              <div className={`flex items-center gap-2 p-2 rounded-xl border transition-all ${
+                isDarkMode ? "bg-white/5 border-white/10" : "bg-gray-50 border-gray-200"
               }`}>
-                Team 2
-              </span>
-              <span className="text-5xl md:text-6xl font-black tracking-tight text-white transition-transform duration-300">
-                <span className={isDarkMode ? "text-white" : "text-gray-900"}>{team2Score}</span>
-              </span>
-              {selectedTeam === 2 && (
-                <div className="absolute top-2 right-2 w-2 h-2 rounded-full bg-primary animate-ping"></div>
-              )}
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  placeholder="Enter score"
+                  disabled={isGameOver}
+                  value={input1}
+                  onChange={(e) => setInput1(e.target.value)}
+                  className={`bg-transparent font-bold text-center w-full focus:outline-none text-lg ${
+                    isDarkMode ? "text-white placeholder-white/30" : "text-gray-900 placeholder-gray-400"
+                  }`}
+                />
+              </div>
+
+              {/* Plus & Minus buttons */}
+              <div className="flex gap-2">
+                <button
+                  disabled={isGameOver || input1 === ""}
+                  onClick={() => handleOperation(1, "+")}
+                  className="flex-1 py-3 bg-primary hover:bg-primary-hover text-bg-main font-bold rounded-xl transition-all active:scale-95 flex items-center justify-center gap-1 shadow-sm disabled:opacity-40"
+                >
+                  <Plus size={18} />
+                  <span>Add</span>
+                </button>
+                <button
+                  disabled={isGameOver || input1 === "" || team1Score === 0}
+                  onClick={() => handleOperation(1, "-")}
+                  className={`flex-1 py-3 font-bold rounded-xl transition-all active:scale-95 border flex items-center justify-center gap-1 disabled:opacity-40 ${
+                    isDarkMode
+                      ? "bg-white/5 border-white/10 hover:bg-white/10 text-white"
+                      : "bg-gray-50 border-gray-200 hover:bg-gray-100 text-gray-800"
+                  }`}
+                >
+                  <Minus size={18} />
+                  <span>Sub</span>
+                </button>
+              </div>
+
+              {/* Undo & Reset buttons */}
+              <div className="flex gap-2">
+                <button
+                  disabled={history1.length === 0}
+                  onClick={() => handleUndo(1)}
+                  className={`flex-1 py-2.5 text-xs font-semibold rounded-lg transition-all border flex items-center justify-center gap-1 disabled:opacity-35 ${
+                    isDarkMode
+                      ? "bg-white/5 border-white/5 text-text-secondary hover:text-white"
+                      : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100"
+                  }`}
+                  title="Undo last action"
+                >
+                  <Undo size={14} />
+                  <span>Undo</span>
+                </button>
+                <button
+                  disabled={history1.length === 0 && input1 === ""}
+                  onClick={() => handleResetTeam(1)}
+                  className="flex-1 py-2.5 text-xs font-semibold rounded-lg transition-all bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 flex items-center justify-center gap-1 disabled:opacity-35"
+                >
+                  <RotateCcw size={14} />
+                  <span>Reset</span>
+                </button>
+              </div>
             </div>
-          </div>
+
+            {/* History List */}
+            <div className={`mt-6 border-t pt-4 ${isDarkMode ? "border-white/5" : "border-gray-100"}`}>
+              <div className="flex items-center gap-2 mb-2 text-text-secondary">
+                <History size={14} />
+                <span className="text-[10px] font-bold uppercase tracking-wider">History</span>
+              </div>
+              <div className={`rounded-xl p-3 h-28 overflow-y-auto flex flex-col gap-1.5 scrollbar-thin ${
+                isDarkMode ? "bg-white/5" : "bg-gray-50 border border-gray-100"
+              }`}>
+                {history1.length === 0 ? (
+                  <span className="text-[11px] text-text-secondary italic my-auto text-center">No changes yet</span>
+                ) : (
+                  history1.map((item, idx) => (
+                    <div key={idx} className={`flex justify-between items-center text-xs font-medium pb-1 border-b ${
+                      isDarkMode ? "border-white/5" : "border-gray-200"
+                    }`}>
+                      <span className={item.op === "+" ? "text-green-500" : "text-red-500"}>
+                        {item.op}{item.val}
+                      </span>
+                      <span className="text-text-secondary">
+                        {item.prev} → {item.next}
+                      </span>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Team 2 Card */}
+          <motion.div
+            className={`p-6 rounded-[24px] border transition-all duration-300 flex flex-col justify-between ${
+              winner === "Team 2" ? "border-primary shadow-[0_0_30px_rgba(234,180,100,0.25)] bg-primary/5" : ""
+            } ${isGameOver && winner !== "Team 2" ? "opacity-50" : ""} ${
+              isDarkMode ? "bg-[#0A1A1F]/70 border-white/5 shadow-xl" : "bg-white border-gray-200 shadow-md"
+            }`}
+          >
+            <div className="text-center relative">
+              <h2 className="text-xl font-bold uppercase tracking-wider mb-2">Team 2</h2>
+              <div className="my-4">
+                <span className="text-6xl md:text-7xl font-black tracking-tight text-primary block">
+                  {team2Score}
+                </span>
+                <span className="text-xs text-text-secondary block mt-1">/ 100</span>
+              </div>
+            </div>
+
+            {/* Input & Operations */}
+            <div className="mt-4 flex flex-col gap-3">
+              <div className={`flex items-center gap-2 p-2 rounded-xl border transition-all ${
+                isDarkMode ? "bg-white/5 border-white/10" : "bg-gray-50 border-gray-200"
+              }`}>
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  placeholder="Enter score"
+                  disabled={isGameOver}
+                  value={input2}
+                  onChange={(e) => setInput2(e.target.value)}
+                  className={`bg-transparent font-bold text-center w-full focus:outline-none text-lg ${
+                    isDarkMode ? "text-white placeholder-white/30" : "text-gray-900 placeholder-gray-400"
+                  }`}
+                />
+              </div>
+
+              {/* Plus & Minus buttons */}
+              <div className="flex gap-2">
+                <button
+                  disabled={isGameOver || input2 === ""}
+                  onClick={() => handleOperation(2, "+")}
+                  className="flex-1 py-3 bg-primary hover:bg-primary-hover text-bg-main font-bold rounded-xl transition-all active:scale-95 flex items-center justify-center gap-1 shadow-sm disabled:opacity-40"
+                >
+                  <Plus size={18} />
+                  <span>Add</span>
+                </button>
+                <button
+                  disabled={isGameOver || input2 === "" || team2Score === 0}
+                  onClick={() => handleOperation(2, "-")}
+                  className={`flex-1 py-3 font-bold rounded-xl transition-all active:scale-95 border flex items-center justify-center gap-1 disabled:opacity-40 ${
+                    isDarkMode
+                      ? "bg-white/5 border-white/10 hover:bg-white/10 text-white"
+                      : "bg-gray-50 border-gray-200 hover:bg-gray-100 text-gray-800"
+                  }`}
+                >
+                  <Minus size={18} />
+                  <span>Sub</span>
+                </button>
+              </div>
+
+              {/* Undo & Reset buttons */}
+              <div className="flex gap-2">
+                <button
+                  disabled={history2.length === 0}
+                  onClick={() => handleUndo(2)}
+                  className={`flex-1 py-2.5 text-xs font-semibold rounded-lg transition-all border flex items-center justify-center gap-1 disabled:opacity-35 ${
+                    isDarkMode
+                      ? "bg-white/5 border-white/5 text-text-secondary hover:text-white"
+                      : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100"
+                  }`}
+                  title="Undo last action"
+                >
+                  <Undo size={14} />
+                  <span>Undo</span>
+                </button>
+                <button
+                  disabled={history2.length === 0 && input2 === ""}
+                  onClick={() => handleResetTeam(2)}
+                  className="flex-1 py-2.5 text-xs font-semibold rounded-lg transition-all bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 flex items-center justify-center gap-1 disabled:opacity-35"
+                >
+                  <RotateCcw size={14} />
+                  <span>Reset</span>
+                </button>
+              </div>
+            </div>
+
+            {/* History List */}
+            <div className={`mt-6 border-t pt-4 ${isDarkMode ? "border-white/5" : "border-gray-100"}`}>
+              <div className="flex items-center gap-2 mb-2 text-text-secondary">
+                <History size={14} />
+                <span className="text-[10px] font-bold uppercase tracking-wider">History</span>
+              </div>
+              <div className={`rounded-xl p-3 h-28 overflow-y-auto flex flex-col gap-1.5 scrollbar-thin ${
+                isDarkMode ? "bg-white/5" : "bg-gray-50 border border-gray-100"
+              }`}>
+                {history2.length === 0 ? (
+                  <span className="text-[11px] text-text-secondary italic my-auto text-center">No changes yet</span>
+                ) : (
+                  history2.map((item, idx) => (
+                    <div key={idx} className={`flex justify-between items-center text-xs font-medium pb-1 border-b ${
+                      isDarkMode ? "border-white/5" : "border-gray-200"
+                    }`}>
+                      <span className={item.op === "+" ? "text-green-500" : "text-red-500"}>
+                        {item.op}{item.val}
+                      </span>
+                      <span className="text-text-secondary">
+                        {item.prev} → {item.next}
+                      </span>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </motion.div>
         </div>
 
-        {/* Input & Calculator Card */}
-        <div
-          className={`p-6 rounded-[24px] border transition-all duration-300 flex flex-col gap-4 ${
-            isDarkMode
-              ? "bg-[#0A1A1F]/70 border-white/5 shadow-2xl"
-              : "bg-white border-gray-200 shadow-xl"
-          }`}
-        >
-          {/* Enter Number display */}
-          <div className="flex flex-col items-center">
-            <span className="text-[10px] uppercase font-bold tracking-widest text-text-secondary mb-1">
-              Enter Number
-            </span>
-            <div className="text-3xl font-black tracking-wider text-primary min-h-[40px] flex items-center justify-center">
-              {currentInput || "0"}
-            </div>
-          </div>
-
-          {/* Calculator Grid */}
-          <div className="grid grid-cols-3 gap-3">
-            {[7, 8, 9, 4, 5, 6, 1, 2, 3].map((num) => (
-              <button
-                key={num}
-                disabled={isGameOver}
-                onClick={() => handleNumClick(num)}
-                className={`py-4 text-xl font-bold rounded-xl transition-all active:scale-95 ${
-                  isDarkMode
-                    ? "bg-white/5 hover:bg-white/10 text-white disabled:opacity-35"
-                    : "bg-gray-100 hover:bg-gray-200 text-gray-800 disabled:opacity-35"
-                }`}
-              >
-                {num}
-              </button>
-            ))}
-            {/* Clear Button */}
-            <button
-              disabled={isGameOver}
-              onClick={handleClear}
-              className={`py-4 text-xl font-black rounded-xl transition-all active:scale-95 ${
-                isDarkMode
-                  ? "bg-red-500/10 hover:bg-red-500/20 text-red-400 disabled:opacity-35"
-                  : "bg-red-50 hover:bg-red-100 text-red-600 disabled:opacity-35"
-              }`}
-            >
-              C
-            </button>
-            {/* 0 Button */}
-            <button
-              disabled={isGameOver}
-              onClick={() => handleNumClick(0)}
-              className={`py-4 text-xl font-bold rounded-xl transition-all active:scale-95 ${
-                isDarkMode
-                  ? "bg-white/5 hover:bg-white/10 text-white disabled:opacity-35"
-                  : "bg-gray-100 hover:bg-gray-200 text-gray-800 disabled:opacity-35"
-              }`}
-            >
-              0
-            </button>
-            {/* Backspace Button */}
-            <button
-              disabled={isGameOver}
-              onClick={handleBackspace}
-              className={`py-4 text-xl font-bold rounded-xl transition-all active:scale-95 flex items-center justify-center ${
-                isDarkMode
-                  ? "bg-white/5 hover:bg-white/10 text-white disabled:opacity-35"
-                  : "bg-gray-100 hover:bg-gray-200 text-gray-800 disabled:opacity-35"
-              }`}
-              aria-label="Backspace"
-            >
-              ⌫
-            </button>
-          </div>
-
-          {/* Plus / Minus Actions */}
-          <div className="grid grid-cols-2 gap-4 mt-2">
-            <button
-              disabled={isGameOver || currentInput === ""}
-              onClick={() => handleOperation("+")}
-              className="py-4 bg-primary hover:bg-primary-hover text-bg-main font-black text-2xl rounded-xl transition-all active:scale-95 shadow-lg disabled:opacity-40"
-            >
-              +
-            </button>
-            <button
-              disabled={isGameOver || currentInput === ""}
-              onClick={() => handleOperation("-")}
-              className={`py-4 font-black text-2xl rounded-xl transition-all active:scale-95 border disabled:opacity-40 ${
-                isDarkMode
-                  ? "bg-white/5 border-white/10 hover:bg-white/10 text-white"
-                  : "bg-gray-50 border-gray-200 hover:bg-gray-100 text-gray-800"
-              }`}
-            >
-              -
-            </button>
-          </div>
-
-          {/* Team Selectors */}
-          <div className="flex items-center justify-between gap-3 mt-2 border-t border-white/5 pt-4">
-            <span className="text-xs font-bold text-text-secondary">Select Team:</span>
-            <div className="flex gap-2">
-              <button
-                disabled={isGameOver}
-                onClick={() => setSelectedTeam(1)}
-                className={`px-4 py-2 text-xs font-bold rounded-lg transition-all ${
-                  selectedTeam === 1
-                    ? "bg-primary text-bg-main shadow-md"
-                    : isDarkMode
-                    ? "bg-white/5 text-text-secondary hover:text-white"
-                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                }`}
-              >
-                Team 1
-              </button>
-              <button
-                disabled={isGameOver}
-                onClick={() => setSelectedTeam(2)}
-                className={`px-4 py-2 text-xs font-bold rounded-lg transition-all ${
-                  selectedTeam === 2
-                    ? "bg-primary text-bg-main shadow-md"
-                    : isDarkMode
-                    ? "bg-white/5 text-text-secondary hover:text-white"
-                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                }`}
-              >
-                Team 2
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Calculation Preview */}
-        {currentInput !== "" && (
-          <div
-            className={`p-4 rounded-xl border text-center transition-all duration-300 ${
+        {/* Global Controls */}
+        <div className="flex justify-center mt-4">
+          <button
+            onClick={handleRestart}
+            className={`px-8 py-3.5 font-bold rounded-xl transition-all flex items-center gap-2 shadow-sm border ${
               isDarkMode
-                ? "bg-[#0A1A1F]/50 border-white/5"
-                : "bg-gray-50 border-gray-200"
+                ? "bg-white/5 hover:bg-white/10 hover:text-white text-text-secondary border-white/10 hover:border-white/20"
+                : "bg-white border-gray-200 text-gray-700 hover:bg-gray-50"
             }`}
           >
-            <span className="text-xs font-bold text-text-secondary block mb-1">Calculation Preview</span>
-            <div className="text-sm font-semibold tracking-wide text-primary">
-              Team {selectedTeam}: {activeScore} + {inputVal} = {activeScore + inputVal} (or {activeScore} - {inputVal} = {Math.max(0, activeScore - inputVal)})
-            </div>
-          </div>
-        )}
-
-        {/* History System */}
-        <div className="grid grid-cols-2 gap-4">
-          {/* Team 1 History */}
-          <div
-            className={`p-4 rounded-[20px] border h-44 flex flex-col ${
-              isDarkMode
-                ? "bg-[#0A1A1F]/70 border-white/5"
-                : "bg-white border-gray-200 shadow-md"
-            }`}
-          >
-            <span className="text-xs font-bold uppercase tracking-wider text-text-secondary border-b border-white/5 pb-2 mb-2 block">
-              Team 1 History
-            </span>
-            <div className="flex-grow overflow-y-auto flex flex-col gap-1.5 scrollbar-thin">
-              {history1.length === 0 ? (
-                <span className="text-xs text-text-secondary italic my-auto text-center">No history yet</span>
-              ) : (
-                history1.map((item, idx) => (
-                  <div key={idx} className="flex justify-between items-center text-xs font-medium border-b border-white/5 pb-1">
-                    <span className={item.op === "+" ? "text-green-500" : "text-red-500"}>
-                      {item.op}{item.val}
-                    </span>
-                    <span className="text-text-secondary">
-                      {item.prev} → {item.next}
-                    </span>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-
-          {/* Team 2 History */}
-          <div
-            className={`p-4 rounded-[20px] border h-44 flex flex-col ${
-              isDarkMode
-                ? "bg-[#0A1A1F]/70 border-white/5"
-                : "bg-white border-gray-200 shadow-md"
-            }`}
-          >
-            <span className="text-xs font-bold uppercase tracking-wider text-text-secondary border-b border-white/5 pb-2 mb-2 block">
-              Team 2 History
-            </span>
-            <div className="flex-grow overflow-y-auto flex flex-col gap-1.5 scrollbar-thin">
-              {history2.length === 0 ? (
-                <span className="text-xs text-text-secondary italic my-auto text-center">No history yet</span>
-              ) : (
-                history2.map((item, idx) => (
-                  <div key={idx} className="flex justify-between items-center text-xs font-medium border-b border-white/5 pb-1">
-                    <span className={item.op === "+" ? "text-green-500" : "text-red-500"}>
-                      {item.op}{item.val}
-                    </span>
-                    <span className="text-text-secondary">
-                      {item.prev} → {item.next}
-                    </span>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
+            <RotateCcw size={18} />
+            <span>Reset Match</span>
+          </button>
         </div>
       </main>
 
@@ -424,12 +417,9 @@ export default function Home() {
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.9, y: 20 }}
               className={`w-full max-w-sm p-8 rounded-[32px] border text-center relative overflow-hidden ${
-                isDarkMode
-                  ? "bg-[#0A1A1F] border-white/10"
-                  : "bg-white border-gray-200 shadow-2xl"
+                isDarkMode ? "bg-[#0A1A1F] border-white/10" : "bg-white border-gray-200 shadow-2xl"
               }`}
             >
-              {/* Highlight Winner */}
               <div className="absolute top-0 left-0 w-full h-2 bg-primary"></div>
               
               <motion.div
@@ -440,8 +430,10 @@ export default function Home() {
                 <Trophy size={56} />
               </motion.div>
 
-              <h2 className="text-3xl font-black tracking-wide uppercase text-white mb-2">
-                <span className={isDarkMode ? "text-white" : "text-gray-900"}>{winner} Winner</span>
+              <h2 className={`text-3xl font-black tracking-wide uppercase mb-2 ${
+                isDarkMode ? "text-white" : "text-gray-900"
+              }`}>
+                🏆 {winner} Winner
               </h2>
               <p className="text-primary font-bold text-sm uppercase tracking-widest mb-6">
                 Score of 100+ Reached!
